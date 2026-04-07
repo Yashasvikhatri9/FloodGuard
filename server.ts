@@ -81,8 +81,8 @@ app.get("/api/geocoding", async (req, res) => {
   }
 });
 
-// Vite middleware for development
-if (process.env.NODE_ENV !== "production") {
+// Only listen if not running as a serverless function (e.g., on Vercel)
+if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
   createViteServer({
     server: { middlewareMode: true },
     appType: "spa",
@@ -92,12 +92,19 @@ if (process.env.NODE_ENV !== "production") {
       console.log(`Server running on http://localhost:${PORT}`);
     });
   });
-} else {
+} else if (process.env.NODE_ENV === "production" && !process.env.VERCEL) {
+  // Local production mode
   const distPath = path.join(process.cwd(), 'dist');
   app.use(express.static(distPath));
   app.get('*', (req, res) => {
     res.sendFile(path.join(distPath, 'index.html'));
   });
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+  });
+} else {
+  // Vercel production mode (static files are handled by vercel.json rewrites)
+  // We just need the API routes to work
 }
 
 export default app;
