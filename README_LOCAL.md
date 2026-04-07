@@ -45,4 +45,4 @@ This guide explains how to run the application on your local machine and deploy 
 5. **Deploy**: Click **Deploy**.
 
 ### How it works on Vercel
-The `vercel.json` file in the root directory routes all `/api/*` requests to `server.ts`, which Vercel runs as a serverless function. The React frontend is served as static files from the `dist` folder.
+The `api/index.ts` file is automatically detected by Vercel as a serverless function. The `vercel.json` file handles the routing between your React frontend and the Express backend.
