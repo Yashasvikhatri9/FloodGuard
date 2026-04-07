@@ -1,0 +1,7 @@
+{
+  "name": "FloodGuard",
+  "description": "AI-powered smart city web platform predicting urban flood risks using real-time sensor data, AI prediction models, and citizen reports.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}

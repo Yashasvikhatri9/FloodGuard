@@ -1,0 +1,145 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: {uid}
+    // Fields:
+    //   - uid: string (required, immutable) - User ID
+    //   - email: string (required) - User email
+    //   - displayName: string (optional) - User display name
+    //   - photoURL: string (optional) - User photo URL
+    //   - role: string (required, enum: ['admin', 'user']) - User role
+    //   - createdAt: timestamp (optional) - Creation timestamp
+    //
+    // Collection: wards
+    // Document ID: {wardId}
+    // Fields:
+    //   - id: string (required) - Ward ID
+    //   - name: string (required) - Ward name
+    //   - risk: string (required, enum: ['High', 'Medium', 'Safe']) - Risk level
+    //   - level: number (required, 0-100) - Flood probability level (%)
+    //   - lat: number (required) - Latitude
+    //   - lng: number (required) - Longitude
+    //   - color: string (required) - Color code for map
+    //   - lastUpdated: timestamp (optional) - Last update timestamp
+    //
+    // Collection: reports
+    // Document ID: {reportId}
+    // Fields:
+    //   - id: string (optional) - Report ID
+    //   - reporterName: string (required) - Reporter name
+    //   - reporterUid: string (optional) - Reporter UID
+    //   - location: string (required, max 200 chars) - Location description
+    //   - lat: number (optional) - Latitude
+    //   - lng: number (optional) - Longitude
+    //   - level: string (required, enum: ['Low', 'Medium', 'High', 'Critical']) - Flood level
+    //   - description: string (optional, max 1000 chars) - Detailed description
+    //   - timestamp: timestamp (required) - Report timestamp
+    //   - status: string (required, enum: ['pending', 'verified', 'resolved']) - Report status
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          request.auth.token.email == "yashasvi.khatri05@gmail.com");
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidUrl(url) {
+      return url is string && (url.matches("^https://.*") || url.matches("^http://.*"));
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidUser(data) {
+      return hasOnlyAllowedFields(['uid', 'email', 'displayName', 'photoURL', 'role', 'createdAt']) &&
+        data.uid is string && data.uid.size() > 0 &&
+        data.email is string && isValidEmail(data.email) &&
+        data.role in ['admin', 'user'] &&
+        (data.displayName == null || (data.displayName is string && data.displayName.size() < 100)) &&
+        (data.photoURL == null || isValidUrl(data.photoURL));
+    }
+
+    function isValidWard(data) {
+      return hasOnlyAllowedFields(['id', 'name', 'risk', 'level', 'lat', 'lng', 'color', 'lastUpdated']) &&
+        data.id is string && data.name is string &&
+        data.risk in ['High', 'Medium', 'Safe'] &&
+        data.level is number && data.level >= 0 && data.level <= 100 &&
+        data.lat is number && data.lng is number &&
+        data.color is string;
+    }
+
+    function isValidReport(data) {
+      return hasOnlyAllowedFields(['id', 'reporterName', 'reporterUid', 'location', 'lat', 'lng', 'level', 'description', 'timestamp', 'status']) &&
+        data.reporterName is string && data.reporterName.size() > 0 && data.reporterName.size() < 100 &&
+        data.location is string && data.location.size() > 0 && data.location.size() < 200 &&
+        data.level in ['Low', 'Medium', 'High', 'Critical'] &&
+        data.status in ['pending', 'verified', 'resolved'] &&
+        data.timestamp is timestamp &&
+        (data.description == null || (data.description is string && data.description.size() < 1000)) &&
+        (data.reporterUid == null || data.reporterUid is string) &&
+        (data.lat == null || data.lat is number) &&
+        (data.lng == null || data.lng is number);
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow create: if isAuthenticated() && isValidUser(request.resource.data) && 
+                    (isOwner(uid) && request.resource.data.role == 'user' || isAdmin());
+      allow update: if isAuthenticated() && isValidUser(request.resource.data) && 
+                    (isOwner(uid) && request.resource.data.role == resource.data.role || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /wards/{wardId} {
+      allow read: if true; // Publicly readable for dashboard
+      allow write: if isAdmin();
+    }
+
+    match /reports/{reportId} {
+      allow read: if true; // Publicly readable for awareness
+      allow create: if isAuthenticated() && isValidReport(request.resource.data) && 
+                    (request.resource.data.reporterUid == request.auth.uid || request.resource.data.reporterUid == null);
+      allow update: if isAuthenticated() && (isAdmin() || (isOwner(resource.data.reporterUid) && isValidReport(request.resource.data) && request.resource.data.status == resource.data.status));
+      allow delete: if isAdmin();
+    }
+
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}
