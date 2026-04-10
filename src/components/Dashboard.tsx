@@ -267,7 +267,8 @@ export default function Dashboard() {
         rainfall: parseFloat((current.precipitation || 0).toFixed(2)),
         humidity: current.relative_humidity_2m,
         temp: current.temperature_2m,
-        description: getWeatherDesc(current.weather_code)
+        description: getWeatherDesc(current.weather_code),
+        wind: current.wind_speed_10m || 0
       };
       setWardsWeather(prev => ({ ...prev, [wardId]: weather }));
       return weather;

@@ -23,7 +23,7 @@ app.get("/api/weather", async (req, res) => {
   }
 
   try {
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,precipitation,weather_code&wind_speed_unit=ms&timezone=auto`;
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,precipitation,weather_code,wind_speed_10m&wind_speed_unit=kmh&timezone=auto`;
 
     const response = await axios.get(url, {
       timeout: 10000,

@@ -81,7 +81,9 @@ export default function Solution() {
         temp: `${Math.round(current.temperature_2m)}°C`,
         condition: getWeatherCondition(current.weather_code),
         humidity: `${current.relative_humidity_2m}%`,
-        wind: `${Math.round(current.wind_speed_10m)} km/h`,
+        wind: current.wind_speed_10m != null
+        ? `${Math.round(current.wind_speed_10m)} km/h`
+        : '0 km/h',
         visibility: current.visibility ? `${(current.visibility / 1000).toFixed(1)} km` : 'N/A'
       });
     } catch (e) {
