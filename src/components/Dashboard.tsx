@@ -739,14 +739,7 @@ export default function Dashboard() {
                 <span className="text-sm font-bold">Locate Me</span>
               </motion.button>
               
-              <motion.div 
-                initial={{ x: 20, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                className="bg-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2"
-              >
-                <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse"></div>
-                <span className="text-sm font-bold text-gray-900">2 Critical Alerts</span>
-              </motion.div>
+              
             </div>
           </div>
 
